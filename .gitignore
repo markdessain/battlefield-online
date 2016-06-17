@@ -1,0 +1,6 @@
+bower_components
+__pycache__
+.pyc
+data/
+.env
+dump.rdb

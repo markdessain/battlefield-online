@@ -1,0 +1,10 @@
+{
+  "name": "javascript",
+  "dependencies": {
+    "Chart.js": "^2.1.6",
+    "jquery": "^3.0.0",
+    "photoset-grid": "^1.0.1",
+    "masonry": "^4.1.0",
+    "imagesloaded": "^4.1.0"
+  }
+}

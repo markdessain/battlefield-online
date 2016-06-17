@@ -13,7 +13,5 @@ if __name__ == '__main__':
         '@battlefield'
     ]
     files = TweetLoader().load(queries)
-    # files = [
-    # ]
 
     TweetEnricher().enrich(files)

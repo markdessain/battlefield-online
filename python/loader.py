@@ -93,11 +93,11 @@ class TweetLoader(Loader):
                 shutil.move(file_name, location)
                 output.append(location)
             else:
-                location = 'data/tweets/%s/%s.dump' % (query, datetime.datetime.now())
-                self.s3_client.upload_file('%s.marker' % query, 'bf1online', 'data/tweets/%s.marker' % query)
-                self.s3_client.upload_file(file_name, 'bf1online', location)
+                location = '%s/%s.dump' % (query, datetime.datetime.now())
+                self.s3_client.upload_file('%s.marker' % query, 'bf1online', '%s/tweets/%s.marker' % (config.S3_DATA, query))
+                self.s3_client.upload_file(file_name, 'bf1online', '%s/tweets/%s' % (config.S3_DATA, location))
                 os.remove('%s.marker' % query)
                 os.remove(file_name)
                 output.append(location)
-                
+
         return output

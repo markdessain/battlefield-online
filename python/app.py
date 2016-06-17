@@ -1,0 +1,65 @@
+import json
+import logging
+
+import redis
+import numpy as np
+import pandas as pd
+from flask import Flask, render_template, request, jsonify
+
+import config
+
+
+log = logging.getLogger(__name__)
+
+app = Flask(__name__, template_folder='../html', static_folder='../static')
+app.config['DEBUG'] = config.FLASK_DEBUG
+
+db = redis.Redis()
+
+
+@app.route('/')
+def route_index():
+    return render_template('index.html')
+
+
+@app.route('/graph')
+def route_graph():
+    def aaa():
+        for timestamp, score in db.zrangebyscore('index:score:created_at_hour', '-inf', '+inf', withscores=True):
+            yield int(timestamp), int(score)
+
+    df = pd.DataFrame(data=aaa(), columns=['datetime', 'num_of_tweets'])
+    df['datetime'] = pd.to_datetime(df['datetime'],unit='s')
+    df['hour'] = df['datetime'].map(lambda x: '%s %s:00' % (x.strftime('%a'), x.hour) if x.hour == 0 else '%s:00' % x.hour if x.hour % 4 ==0 else '' )
+    df = df.sort(['datetime'])
+
+    values = list(map(str, df['num_of_tweets'].tolist()[-24*3:]))
+    result = {
+        'labels': df['hour'].tolist()[-24*3:],
+        'values': values,
+    }
+
+    return jsonify(result)
+
+
+@app.route('/top')
+def route_top():
+    result = {
+        'media': [
+            url.decode()
+            for url in db.zrange('index:score:media', 0, 20, desc=True)
+        ],
+        'hashtags': [
+            url.decode()
+            for url in db.zrange('index:score:hashtags', 0, 20, desc=True)
+        ],
+        'user_mentions': [
+            url.decode()
+            for url in db.zrange('index:score:user_mentions', 0, 18, desc=True)
+        ]
+    }
+    return jsonify(result)
+
+
+if __name__ == "__main__":
+    app.run()

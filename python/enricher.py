@@ -1,7 +1,10 @@
+import os
 import math
+import glob
 import json
 import datetime
 
+import boto3
 import redis
 from dateutil.parser import parse
 
@@ -23,14 +26,44 @@ class TweetEnricher(Enricher):
     def __init__(self):
         self.db = redis.Redis()
 
+        if not config.LOCAL:
+            self.s3_client = boto3.client(
+                's3',
+                aws_access_key_id=config.AWS_ACCESS_KEY_ID,
+                aws_secret_access_key=config.AWS_SECRET_ACCESS_KEY
+            )
+
     def records(self, files):
 
-        for fname in files:
-            with open(fname, 'r') as f:
-                for l in f.readlines():
-                    result = json.loads(l)
-                    if result['lang'] == 'en' and (not 'giveaway' in result['text'].lower()):
-                        yield result
+        if not files:
+            if config.LOCAL:
+                for result in glob.glob('../data/tweets/*/*'):
+                    if result.endswith('.dump') and not 'misc' in result:
+                        files.append(result)
+            else:
+                files = []
+                paginator = self.s3_client.get_paginator('list_objects')
+                for result in paginator.paginate(Bucket=config.S3_BUCKET, Delimiter='%s/tweets' % config.S3_DATA):
+                    for content in result['Contents']:
+                        if content['Key'].endswith('.dump') and not 'misc' in content['Key']:
+                            files.append(content['Key'][len('%s/tweets' % config.S3_DATA):])
+
+        for file_name in files:
+            if config.LOCAL:
+                for r in self.get(file_name):
+                    yield r
+            else:
+                self.s3_client.download_file('bf1online', 'data/tweets/%s' % file_name, 'local.dump')
+                for r in self.get('local.dump'):
+                    yield r
+                os.remove('local.dump')
+
+    def get(self, file_name):
+        with open(file_name, 'r') as f:
+            for l in f.readlines():
+                result = json.loads(l)
+                if result['lang'] == 'en' and (not 'giveaway' in result['text'].lower()):
+                    yield result
 
     def enrich(self, files):
         for result in self.records(files):
@@ -60,14 +93,12 @@ class TweetEnricher(Enricher):
             'original_id_str': result['retweeted_status']['id_str'] if 'retweeted_status' in result else None
         }
 
-        self.db.set('tweet:%s' % result['id_str'], json.dumps(record))
+        # self.db.set('tweet:%s' % result['id_str'], json.dumps(record))
 
     def _create_groups(self):
         for key in self.db.scan_iter('group:tweet:created_at_hour:*'):
             tweets = self.db.smembers(key)
-            self.db.zadd('index:score:created_at_hour_popularity', key[len('group:tweet:created_at_hour:'):], len(tweets))
-
-            self.db.zadd('index:score:created_at_hour_counts', key[len('group:tweet:created_at_hour:'):], len(tweets))
+            self.db.zadd('index:score:created_at_hour', key[len('group:tweet:created_at_hour:'):], len(tweets))
 
     def _create_scores(self):
         for group in [

@@ -1,8 +1,12 @@
+import os
 import time
 import json
+import shutil
 import logging
 import datetime
+import tempfile
 
+import boto3
 import tweepy
 
 import config
@@ -19,8 +23,18 @@ class Loader:
 class TweetLoader(Loader):
 
     def __init__(self):
-        self.auth = tweepy.OAuthHandler(config.TWITTER_CONSUMER_TOKEN, config.TWITTER_CONSUMER_SECRET)
+        self.auth = tweepy.OAuthHandler(
+            config.TWITTER_CONSUMER_TOKEN,
+            config.TWITTER_CONSUMER_SECRET
+        )
         self.twitter = tweepy.API(self.auth)
+
+        if not config.LOCAL:
+            self.s3_client = boto3.client(
+                's3',
+                aws_access_key_id=config.AWS_ACCESS_KEY_ID,
+                aws_secret_access_key=config.AWS_SECRET_ACCESS_KEY
+            )
 
     def get_tweets(self, query, since_id):
         c = tweepy.Cursor(
@@ -44,11 +58,22 @@ class TweetLoader(Loader):
 
     def load(self, queries):
         name = dt2ts(round_to_nearest_day(datetime.datetime.utcnow()))
-        with open('../data/tweets/%s.dump' % name, 'a') as f:
-            for query in queries:
 
-                with open('../data/tweets/%s.marker' % query, 'r') as f2:
-                    since_id = f2.read() or None
+        output = []
+        for query in queries:
+
+            if config.LOCAL:
+                marker_file = '../data/tweets/%s.marker' % query
+            else:
+                marker_file = '%s.marker' % query
+                self.s3_client.download_file('bf1online', 'data/tweets/%s.marker' % query, marker_file)
+
+            with open(marker_file, 'r') as f2:
+                since_id = f2.read() or None
+
+            file_name = ''
+            with tempfile.NamedTemporaryFile(delete=False, mode='a') as f:
+                file_name = f.name
                 next_id = None
                 for tweet in self.get_tweets(query, since_id):
                     record = tweet._json
@@ -58,6 +83,21 @@ class TweetLoader(Loader):
                     if not next_id:
                         next_id = tweet.id
 
-                if next_id:
-                    with open('../data/tweets/%s.marker' % query, 'w') as f2:
-                        f2.write(str(next_id))
+            if next_id:
+                with open(marker_file, 'w') as f2:
+                    f2.write(str(next_id))
+
+            if config.LOCAL:
+                location = '../data/tweets/%s/%s.dump' % (query, datetime.datetime.now())
+                os.makedirs(os.path.dirname(location), exist_ok=True)
+                shutil.move(file_name, location)
+                output.append(location)
+            else:
+                location = 'data/tweets/%s/%s.dump' % (query, datetime.datetime.now())
+                self.s3_client.upload_file('%s.marker' % query, 'bf1online', 'data/tweets/%s.marker' % query)
+                self.s3_client.upload_file(file_name, 'bf1online', location)
+                os.remove('%s.marker' % query)
+                os.remove(file_name)
+                output.append(location)
+                
+        return output

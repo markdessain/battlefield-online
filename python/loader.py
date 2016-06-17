@@ -63,13 +63,16 @@ class TweetLoader(Loader):
         for query in queries:
 
             if config.LOCAL:
-                marker_file = '../data/tweets/%s.marker' % query
+                marker_file = 'tmp/%s.marker' % query
             else:
                 marker_file = '%s.marker' % query
                 self.s3_client.download_file('bf1online', 'data/tweets/%s.marker' % query, marker_file)
 
-            with open(marker_file, 'r') as f2:
-                since_id = f2.read() or None
+            if os.path.isfile(marker_file):
+                with open(marker_file, 'r') as f2:
+                    since_id = f2.read() or None
+            else:
+                since_id = None
 
             file_name = ''
             with tempfile.NamedTemporaryFile(delete=False, mode='a') as f:
@@ -84,11 +87,12 @@ class TweetLoader(Loader):
                         next_id = tweet.id
 
             if next_id:
+                os.makedirs(os.path.dirname(marker_file), exist_ok=True)
                 with open(marker_file, 'w') as f2:
                     f2.write(str(next_id))
 
             if config.LOCAL:
-                location = '../data/tweets/%s/%s.dump' % (query, datetime.datetime.now())
+                location = 'tmp/%s/%s.dump' % (query, datetime.datetime.now())
                 os.makedirs(os.path.dirname(location), exist_ok=True)
                 shutil.move(file_name, location)
                 output.append(location)

@@ -24,7 +24,7 @@ class Enricher:
 class TweetEnricher(Enricher):
 
     def __init__(self):
-        self.db = redis.Redis()
+        self.db = redis.from_url(config.REDIS_URL)
 
         if not config.LOCAL:
             self.s3_client = boto3.client(
@@ -37,7 +37,7 @@ class TweetEnricher(Enricher):
 
         if not files:
             if config.LOCAL:
-                for result in glob.glob('../data/tweets/*/*'):
+                for result in glob.glob('tmp/*/*'):
                     if result.endswith('.dump') and not 'misc' in result:
                         files.append(result)
             else:

@@ -14,7 +14,7 @@ log = logging.getLogger(__name__)
 app = Flask(__name__, template_folder='../html', static_folder='../static')
 app.config['DEBUG'] = config.FLASK_DEBUG
 
-db = redis.Redis()
+db = redis.from_url(config.REDIS_URL)
 
 
 @app.route('/')

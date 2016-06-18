@@ -1,3 +1,5 @@
+import sys
+
 import config
 from loader import TweetLoader
 from enricher import TweetEnricher
@@ -5,7 +7,18 @@ from enricher import TweetEnricher
 
 if __name__ == '__main__':
 
-    queries = config.TWITTER_SEARCH
+    args = sys.argv
 
-    files = TweetLoader().load(queries)
-    TweetEnricher().enrich(files)
+    if len(args) > 1:
+        plan = args[1]
+    else:
+        plan = 'load-enrich'
+
+    if 'load' in plan:
+        queries = config.TWITTER_SEARCH
+        files = TweetLoader().load(queries)
+    else:
+        files = []
+
+    if 'enrich' in plan:
+        TweetEnricher().enrich(files)

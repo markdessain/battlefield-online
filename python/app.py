@@ -1,5 +1,6 @@
 import json
 import logging
+import datetime
 
 import redis
 import numpy as np
@@ -24,19 +25,46 @@ def route_index():
 
 @app.route('/graph')
 def route_graph():
-    def aaa():
-        for timestamp, score in db.zrangebyscore('index:score:created_at_hour', '-inf', '+inf', withscores=True):
-            yield int(timestamp), int(score)
+    def get_groups(group):
+        return dict([
+            (int(timestamp), int(score))
+            for timestamp, score in db.zrangebyscore('index:score:%s' % group, '-inf', '+inf', withscores=True)
+        ])
 
-    df = pd.DataFrame(data=aaa(), columns=['datetime', 'num_of_tweets'])
-    df['datetime'] = pd.to_datetime(df['datetime'],unit='s')
-    df['hour'] = df['datetime'].map(lambda x: '%s %s:00' % (x.strftime('%a'), x.hour) if x.hour == 0 else '%s:00' % x.hour if x.hour % 4 ==0 else '' )
-    df = df.sort(['datetime'])
+    created_at_hour = get_groups('created_at_hour')
+    retweets_at_hour = get_groups('retweets_at_hour')
 
-    values = list(map(str, df['num_of_tweets'].tolist()[-24*3:]))
+    all_timestamps = sorted(set(created_at_hour.keys()).union(set(retweets_at_hour.keys())))
+
+    created_at_hour_result = []
+    retweets_at_hour_result = []
+    labels = []
+
+    for timestamp in all_timestamps:
+
+        created_at_hour_result.append(
+            created_at_hour.get(timestamp, 0)
+        )
+        retweets_at_hour_result.append(
+            retweets_at_hour.get(timestamp, 0)
+        )
+
+        labels.append(
+            datetime.datetime.utcfromtimestamp(timestamp)
+        )
+
+    labels = map(
+        lambda x: '%s %s:00' % (x.strftime('%a'), x.hour) if x.hour == 0 else '%s:00' % x.hour if x.hour % 4 ==0 else '',
+        labels
+    )
+
     result = {
-        'labels': df['hour'].tolist()[-24*3:],
-        'values': values,
+        'labels': list(labels),
+        'datasets': {
+            'created_at_hour': created_at_hour_result,
+            'retweets_at_hour': retweets_at_hour_result
+        }
+
     }
 
     return jsonify(result)

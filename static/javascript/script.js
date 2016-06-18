@@ -3,18 +3,28 @@ $( document ).ready(function() {
       url: '/graph',
       type: 'GET',
       success: function(data) {
+        console.log(data.labels.length);
+        console.log(data.datasets.created_at_hour.length);
         var ctx = document.getElementById("tweet_chart");
         var myChart = new Chart(ctx, {
             type: 'line',
             data: {
                 labels: data.labels,
-                datasets: [{
-                    label: '# of Tweets',
-                    data: data.values,
-                    backgroundColor: 'rgba(54, 162, 235, 0.2)',
-                    borderColor: 'rgba(54, 162, 235, 1)',
-                    borderWidth: 1,
-                },
+                datasets: [
+                  {
+                      label: '# of Retweets',
+                      data: data.datasets.retweets_at_hour,
+                      backgroundColor: 'rgba(255,99,132,0.2)',
+                      borderColor: 'rgba(255,99,132,1)',
+                      borderWidth: 1,
+                  },
+                  {
+                      label: '# of Tweets',
+                      data: data.datasets.created_at_hour,
+                      backgroundColor: 'rgba(54, 162, 235, 0.2)',
+                      borderColor: 'rgba(54, 162, 235, 1)',
+                      borderWidth: 1,
+                  }
                 ]
             },
             options: {

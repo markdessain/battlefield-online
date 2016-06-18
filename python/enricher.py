@@ -83,6 +83,9 @@ class TweetEnricher(Enricher):
 
         self.db.sadd('group:tweet:created_at_hour:%s' % dt2ts(round_to_nearest_hour(created_at)), result['id_str'])
 
+        if 'retweeted_status' in result:
+            self.db.sadd('group:tweet:retweets_at_hour:%s' % dt2ts(round_to_nearest_hour(created_at)), result['id_str'])
+
         for group, attribute, function in [
             ('media', 'media_url_https', lambda x: x),
             ('user_mentions', 'screen_name', lambda x: x.lower()),
@@ -102,9 +105,14 @@ class TweetEnricher(Enricher):
         # self.db.set('tweet:%s' % result['id_str'], json.dumps(record))
 
     def _create_groups(self):
-        for key in self.db.scan_iter('group:tweet:created_at_hour:*'):
-            tweets = self.db.smembers(key)
-            self.db.zadd('index:score:created_at_hour', key[len('group:tweet:created_at_hour:'):], len(tweets))
+
+        for group in [
+            'created_at_hour',
+            'retweets_at_hour'
+        ]:
+            for key in self.db.scan_iter('group:tweet:%s:*' % group):
+                tweets = self.db.smembers(key)
+                self.db.zadd('index:score:%s' % group, key[len('group:tweet:%s:' % group):], len(tweets))
 
     def _create_scores(self):
         for group in [

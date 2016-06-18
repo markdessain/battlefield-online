@@ -47,6 +47,7 @@ class TweetEnricher(Enricher):
                     for content in result['Contents']:
                         if content['Key'].endswith('.dump') and not 'misc' in content['Key']:
                             files.append(content['Key'][len('%s/tweets' % config.S3_DATA):])
+            log.debug('Files: %s', files)
 
         for file_name in files:
             if config.LOCAL:
@@ -54,7 +55,9 @@ class TweetEnricher(Enricher):
                     yield r
             else:
                 self.s3_client.download_file('bf1online', 'data/tweets/%s' % file_name, 'local.dump')
-                for r in self.get('local.dump'):
+                for i, r in enumerate(self.get('local.dump')):
+                    if i % 25 == 0:
+                        log.debug('Loaded records: %s', i+1)
                     yield r
                 os.remove('local.dump')
 

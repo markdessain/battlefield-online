@@ -1,10 +1,10 @@
 import os
 import logging
 
-logging.basicConfig(level=logging.INFO)
 
 LOG_LEVEL = os.environ['LOG_LEVEL']
 FLASK_DEBUG = bool(os.environ['LOG_LEVEL'] == 'debug')
+logging.basicConfig(level=getattr(logging, LOG_LEVEL.upper()))
 
 LOCAL = os.environ['LOCAL'].lower() == 'true'
 

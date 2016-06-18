@@ -36,12 +36,12 @@ class TweetEnricher(Enricher):
     def records(self, files):
 
         if not files:
+            files = []
             if config.LOCAL:
                 for result in glob.glob('tmp/*/*'):
                     if result.endswith('.dump') and not 'misc' in result:
                         files.append(result)
             else:
-                files = []
                 paginator = self.s3_client.get_paginator('list_objects')
                 for result in paginator.paginate(Bucket=config.S3_BUCKET, Delimiter='%s/tweets' % config.S3_DATA):
                     for content in result['Contents']:

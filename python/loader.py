@@ -87,7 +87,8 @@ class TweetLoader(Loader):
                         next_id = tweet.id
 
             if next_id:
-                os.makedirs(os.path.dirname(marker_file), exist_ok=True)
+                if os.path.dirname(marker_file):
+                    os.makedirs(os.path.dirname(marker_file), exist_ok=True)
                 with open(marker_file, 'w') as f2:
                     f2.write(str(next_id))
 

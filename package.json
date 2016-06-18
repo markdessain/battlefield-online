@@ -1,6 +1,8 @@
-"dependencies": {
+{
+  "dependencies": {
     "bower": "1.7.9"
-},
-"scripts": {
-    "postinstall": "cd ./static/javascript && bower install"
+  },
+  "scripts": {
+      "postinstall": "cd ./static/javascript && bower install"
+  }
 }

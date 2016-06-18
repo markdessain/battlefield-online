@@ -2,6 +2,7 @@ import os
 import math
 import glob
 import json
+import logging
 import datetime
 
 import boto3
@@ -10,6 +11,8 @@ from dateutil.parser import parse
 
 import config
 from utils import dt2ts, round_to_nearest_hour
+
+log = logging.getLogger(__name__)
 
 
 class Enricher:

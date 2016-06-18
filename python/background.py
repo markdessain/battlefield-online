@@ -7,5 +7,6 @@ if __name__ == '__main__':
 
     queries = config.TWITTER_SEARCH
 
-    files = TweetLoader().load(queries)
+    # files = TweetLoader().load(queries)
+    files = []
     TweetEnricher().enrich(files)

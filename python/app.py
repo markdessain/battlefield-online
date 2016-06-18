@@ -19,7 +19,7 @@ db = redis.from_url(config.REDIS_URL)
 
 @app.route('/')
 def route_index():
-    return render_template('index.html')
+    return render_template('index.html', google_tracking_id=config.GOOGLE_TRACKING_ID)
 
 
 @app.route('/graph')

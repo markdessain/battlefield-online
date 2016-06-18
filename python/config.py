@@ -20,3 +20,5 @@ AWS_SECRET_ACCESS_KEY = os.environ['AWS_SECRET_ACCESS_KEY']
 
 S3_BUCKET = os.environ['S3_BUCKET']
 S3_DATA = os.environ['S3_DATA']
+
+GOOGLE_TRACKING_ID = os.environ['GOOGLE_TRACKING_ID']

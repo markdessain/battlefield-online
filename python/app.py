@@ -39,7 +39,7 @@ def route_graph():
     retweets_at_hour_result = []
     labels = []
 
-    points_to_show = (GRAPH_DAYS * 24) + 1
+    points_to_show = (config.GRAPH_DAYS * 24) + 1
     for timestamp in all_timestamps[-points_to_show:-1]:
 
         created_at_hour_result.append(
